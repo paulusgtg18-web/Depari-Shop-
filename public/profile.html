@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil — Depari Shop</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="navbar-root"></div>
+
+<div class="profile-header">
+  <div class="container">
+    <h1 id="profileName">Profil</h1>
+    <p id="profileContact"></p>
+    <div id="ownerBadge"></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="panel">
+    <h3>Akun Saya</h3>
+    <button class="btn btn-danger btn-sm" id="logoutBtn2">Keluar (Logout)</button>
+  </div>
+
+  <div id="ownerSection" style="display:none;">
+
+    <div class="panel" id="kelola">
+      <h3>Jenis Produk (Kategori)</h3>
+      <p style="color:var(--muted); font-size:14px; margin-top:-6px;">Tambahkan jenis produk supaya pengunjung bisa memfilter katalog.</p>
+      <form id="categoryForm" class="inline-form">
+        <div class="field">
+          <label for="categoryName">Nama jenis produk</label>
+          <input type="text" id="categoryName" placeholder="Contoh: Pakaian, Makanan, Aksesoris" required>
+        </div>
+        <button type="submit" class="btn btn-ink">Tambah</button>
+      </form>
+      <div class="alert" id="categoryAlert"></div>
+      <div class="category-list" id="categoryList"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Tambah Produk Baru</h3>
+      <form id="productForm">
+        <div class="field">
+          <label for="pName">Nama produk</label>
+          <input type="text" id="pName" required>
+        </div>
+        <div class="field">
+          <label for="pDesc">Deskripsi</label>
+          <textarea id="pDesc" placeholder="Ceritakan produk ini secara singkat"></textarea>
+        </div>
+        <div class="field">
+          <label for="pPrice">Harga (Rp)</label>
+          <input type="number" id="pPrice" min="0" required>
+        </div>
+        <div class="field">
+          <label for="pCategory">Jenis produk</label>
+          <select id="pCategory">
+            <option value="">Tanpa kategori</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pImage">Gambar produk</label>
+          <input type="file" id="pImage" accept="image/*">
+        </div>
+        <button type="submit" class="btn btn-gold">Simpan Produk</button>
+      </form>
+      <div class="alert" id="productAlert"></div>
+    </div>
+
+    <div class="section-head">
+      <h2>Produk yang Saya Pasarkan</h2>
+    </div>
+    <div class="grid" id="myProducts"></div>
+  </div>
+
+</div>
+
+<footer>&copy; <span id="year"></span> Depari Shop.</footer>
+
+<script src="/js/api.js"></script>
+<script>
+renderNavbar();
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const user = API.user();
+if (!user) {
+  window.location.href = '/login.html';
+}
+
+document.getElementById('profileName').textContent = user.name;
+document.getElementById('profileContact').textContent = user.email || user.phone;
+if (user.is_owner) {
+  document.getElementById('ownerBadge').innerHTML = '<span class="badge-owner">Pemilik Toko</span>';
+  document.getElementById('ownerSection').style.display = 'block';
+}
+
+document.getElementById('logoutBtn2').addEventListener('click', () => {
+  API.clearSession();
+  window.location.href = '/index.html';
+});
+
+let categories = [];
+
+async function loadCategories() {
+  const res = await API.request('/categories');
+  categories = res.categories;
+
+  const list = document.getElementById('categoryList');
+  list.innerHTML = categories.length
+    ? categories.map(c => `<span class="tag-pill">${c.name} <button data-id="${c.id}">&times;</button></span>`).join('')
+    : '<span style="color:var(--muted); font-size:13px;">Belum ada jenis produk.</span>';
+
+  list.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Hapus jenis produk ini?')) return;
+      await API.request(`/categories/${btn.dataset.id}`, { method: 'DELETE' });
+      loadCategories();
+    });
+  });
+
+  const select = document.getElementById('pCategory');
+  select.innerHTML = '<option value="">Tanpa kategori</option>' +
+    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById('categoryAlert');
+  const name = document.getElementById('categoryName').value.trim();
+  try {
+    await API.request('/categories', { method: 'POST', body: { name } });
+    document.getElementById('categoryName').value = '';
+    alertBox.classList.remove('show');
+    loadCategories();
+  } catch (err) {
+    showAlert(alertBox, err.message);
+  }
+});
+
+async function loadMyProducts() {
+  const { products } = await API.request('/products');
+  const grid = document.getElementById('myProducts');
+  if (products.length === 0) {
+    grid.innerHTML = '<div class="empty">Belum ada produk. Tambahkan produk pertama kamu di atas.</div>';
+    return;
+  }
+  grid.innerHTML = products.map(p => `
+    <div class="card">
+      <div class="thumb">${p.image_path ? `<img src="${p.image_path}" alt="${p.name}">` : 'Belum ada gambar'}</div>
+      <div class="body">
+        ${p.category_name ? `<div class="cat">${p.category_name}</div>` : ''}
+        <h3>${p.name}</h3>
+        <p class="desc">${p.description || ''}</p>
+        <div class="price">${formatRupiah(p.price)}</div>
+        <div class="card-actions">
+          <button class="btn btn-danger btn-sm" data-id="${p.id}">Hapus</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Hapus produk ini?')) return;
+      await API.request(`/products/${btn.dataset.id}`, { method: 'DELETE' });
+      loadMyProducts();
+    });
+  });
+}
+
+document.getElementById('productForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById('productAlert');
+  const fd = new FormData();
+  fd.append('name', document.getElementById('pName').value.trim());
+  fd.append('description', document.getElementById('pDesc').value.trim());
+  fd.append('price', document.getElementById('pPrice').value);
+  fd.append('category_id', document.getElementById('pCategory').value);
+  const file = document.getElementById('pImage').files[0];
+  if (file) fd.append('image', file);
+
+  try {
+    await API.request('/products', { method: 'POST', body: fd, isForm: true });
+    e.target.reset();
+    alertBox.classList.remove('show');
+    loadMyProducts();
+  } catch (err) {
+    showAlert(alertBox, err.message);
+  }
+});
+
+if (user.is_owner) {
+  loadCategories();
+  loadMyProducts();
+}
+</script>
+</body>
+        </html>
