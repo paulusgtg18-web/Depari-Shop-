@@ -8,7 +8,7 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = db.prepare('SELECT id, name, email, phone, is_owner FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, name, email, phone, is_owner, avatar_path FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'Akun tidak ditemukan.' });
     req.user = user;
     next();
