@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — Depari Shop</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="navbar-root"></div>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Selamat Datang</h2>
+    <div class="sub">Masuk ke akun Depari Shop kamu.</div>
+    <div class="alert" id="alertBox"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="identifier">Email atau Nomor WhatsApp</label>
+        <input type="text" id="identifier" placeholder="contoh@email.com atau 08xxxxxxxxxx" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Masukkan password" required>
+      </div>
+      <button type="submit" class="btn btn-ink btn-block">Masuk</button>
+    </form>
+
+    <div class="auth-links">
+      <a href="/forgot-password.html">Lupa password?</a>
+    </div>
+    <div class="auth-links">
+      Belum punya akun? <a href="/register.html">Daftar sekarang</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+renderNavbar();
+const alertBox = document.getElementById('alertBox');
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const identifier = document.getElementById('identifier').value.trim();
+  const password = document.getElementById('password').value;
+
+  try {
+    const { token, user } = await API.request('/auth/login', { method: 'POST', body: { identifier, password } });
+    API.setSession(token, user);
+    window.location.href = '/index.html';
+  } catch (err) {
+    showAlert(alertBox, err.message);
+  }
+});
+</script>
+</body>
+      </html>
