@@ -47,13 +47,13 @@ router.get('/', (req, res) => {
 
 // Hanya pemilik: tambah produk baru + gambar
 router.post('/', requireAuth, requireOwner, upload.single('image'), (req, res) => {
-  const { name, description, price, category_id } = req.body;
+  const { name, description, price, category_id, whatsapp_number } = req.body;
   if (!name || !price) return res.status(400).json({ error: 'Nama dan harga produk wajib diisi.' });
 
   const image_path = req.file ? `/uploads/${req.file.filename}` : null;
   const info = db.prepare(
-    'INSERT INTO products (name, description, price, image_path, category_id) VALUES (?, ?, ?, ?, ?)'
-  ).run(name, description || '', Number(price), image_path, category_id || null);
+    'INSERT INTO products (name, description, price, image_path, category_id, whatsapp_number) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(name, description || '', Number(price), image_path, category_id || null, whatsapp_number || null);
 
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid);
   res.json({ product });
@@ -64,17 +64,18 @@ router.put('/:id', requireAuth, requireOwner, upload.single('image'), (req, res)
   const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Produk tidak ditemukan.' });
 
-  const { name, description, price, category_id } = req.body;
+  const { name, description, price, category_id, whatsapp_number } = req.body;
   const image_path = req.file ? `/uploads/${req.file.filename}` : existing.image_path;
 
   db.prepare(
-    'UPDATE products SET name = ?, description = ?, price = ?, image_path = ?, category_id = ? WHERE id = ?'
+    'UPDATE products SET name = ?, description = ?, price = ?, image_path = ?, category_id = ?, whatsapp_number = ? WHERE id = ?'
   ).run(
     name || existing.name,
     description ?? existing.description,
     price ? Number(price) : existing.price,
     image_path,
     category_id || existing.category_id,
+    whatsapp_number ?? existing.whatsapp_number,
     req.params.id
   );
 
