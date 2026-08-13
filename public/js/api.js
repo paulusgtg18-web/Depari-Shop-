@@ -39,10 +39,13 @@ function renderNavbar(activePage = '') {
   let actions = '';
   if (user) {
     const initial = user.name ? user.name.trim()[0].toUpperCase() : '?';
+    const avatarHtml = user.avatar_path
+      ? `<img class="avatar avatar-img" src="${user.avatar_path}" alt="Foto profil">`
+      : `<span class="avatar">${initial}</span>`;
     actions = `
       <div class="profile-wrap">
         <button class="profile-btn" id="profileBtn">
-          <span class="avatar">${initial}</span>
+          ${avatarHtml}
           <span>${user.name}</span>
         </button>
         <div class="dropdown" id="profileDropdown">
@@ -87,4 +90,17 @@ function formatRupiah(num) {
 function showAlert(el, message, type = 'error') {
   el.textContent = message;
   el.className = `alert show alert-${type}`;
+}
+
+// Ubah nomor WhatsApp jadi format internasional (628xxxx) yang dipakai wa.me,
+// lalu bentuk link chat lengkap dengan pesan otomatis berisi nama & harga produk.
+function waLink(rawNumber, productName, price) {
+  if (!rawNumber) return null;
+  let digits = String(rawNumber).replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+  else if (digits.startsWith('8')) digits = '62' + digits;
+  if (!digits) return null;
+
+  const message = `Halo, saya mau beli produk "${productName}" (${formatRupiah(price)}) dari Depari Shop.`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
       }
