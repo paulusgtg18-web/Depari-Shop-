@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depari Shop — Katalog Produk</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="navbar-root"></div>
+
+<section class="hero">
+  <div class="container">
+    <span class="eyebrow">Katalog Resmi</span>
+    <h1>Depari Shop</h1>
+    <p>Semua produk yang kami pasarkan, tersusun rapi di satu tempat. Pilih jenis produk untuk mempersempit pencarian.</p>
+    <div class="chips" id="chips"></div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyState" style="display:none;">Belum ada produk pada jenis ini.</div>
+</div>
+
+<footer>&copy; <span id="year"></span> Depari Shop. Semua produk ditampilkan oleh pemilik toko.</footer>
+
+<script src="/js/api.js"></script>
+<script>
+renderNavbar('katalog');
+document.getElementById('year').textContent = new Date().getFullYear();
+
+let activeCategory = '';
+
+async function loadCategories() {
+  const { categories } = await API.request('/categories');
+  const chips = document.getElementById('chips');
+  chips.innerHTML = `<button class="chip active" data-id="">Semua Produk</button>` +
+    categories.map(c => `<button class="chip" data-id="${c.id}">${c.name}</button>`).join('');
+
+  chips.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeCategory = chip.dataset.id;
+      loadProducts();
+    });
+  });
+}
+
+async function loadProducts() {
+  const qs = activeCategory ? `?category=${activeCategory}` : '';
+  const { products } = await API.request(`/products${qs}`);
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+
+  if (products.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = products.map(p => `
+    <div class="card">
+      <div class="thumb">
+        ${p.image_path ? `<img src="${p.image_path}" alt="${p.name}">` : 'Belum ada gambar'}
+      </div>
+      <div class="body">
+        ${p.category_name ? `<div class="cat">${p.category_name}</div>` : ''}
+        <h3>${p.name}</h3>
+        <p class="desc">${p.description || ''}</p>
+        <div class="price">${formatRupiah(p.price)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+loadCategories();
+loadProducts();
+</script>
+</body>
+                 </html>
