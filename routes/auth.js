@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const path = require('path');
+const multer = require('multer');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { sendResetPasswordEmail } = require('../utils/mailer');
@@ -13,7 +15,7 @@ function signToken(user) {
 }
 
 function publicUser(u) {
-  return { id: u.id, name: u.name, email: u.email, phone: u.phone, is_owner: !!u.is_owner };
+  return { id: u.id, name: u.name, email: u.email, phone: u.phone, is_owner: !!u.is_owner, avatar_path: u.avatar_path || null };
 }
 
 // Daftar akun baru. Akun pertama yang daftar otomatis jadi pemilik toko (owner).
@@ -64,6 +66,41 @@ router.post('/login', (req, res) => {
 // Info user yang sedang login (dipakai halaman profil)
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+// Upload / ganti foto profil
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'avatar-' + crypto.randomBytes(16).toString('hex') + ext);
+  },
+});
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
+    else cb(new Error('Format gambar tidak didukung. Gunakan JPG, PNG, WEBP, atau GIF.'));
+  },
+});
+
+router.put('/avatar', requireAuth, uploadAvatar.single('avatar'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Pilih gambar untuk diupload.' });
+
+  const avatar_path = `/uploads/${req.file.filename}`;
+  db.prepare('UPDATE users SET avatar_path = ? WHERE id = ?').run(avatar_path, req.user.id);
+
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  res.json({ user: publicUser(user) });
+});
+
+// Hapus foto profil (kembali ke avatar inisial)
+router.delete('/avatar', requireAuth, (req, res) => {
+  db.prepare('UPDATE users SET avatar_path = NULL WHERE id = ?').run(req.user.id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  res.json({ user: publicUser(user) });
 });
 
 // Minta link reset password (dikirim lewat email)
