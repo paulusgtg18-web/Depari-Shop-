@@ -10,10 +10,16 @@
 <div id="navbar-root"></div>
 
 <div class="profile-header">
-  <div class="container">
-    <h1 id="profileName">Profil</h1>
-    <p id="profileContact"></p>
-    <div id="ownerBadge"></div>
+  <div class="container profile-header-row">
+    <div class="profile-avatar-wrap">
+      <img id="profileAvatarImg" class="profile-avatar" style="display:none;" alt="Foto profil">
+      <span id="profileAvatarInitial" class="profile-avatar profile-avatar-initial"></span>
+    </div>
+    <div>
+      <h1 id="profileName">Profil</h1>
+      <p id="profileContact"></p>
+      <div id="ownerBadge"></div>
+    </div>
   </div>
 </div>
 
@@ -21,6 +27,16 @@
 
   <div class="panel">
     <h3>Akun Saya</h3>
+    <div class="field" style="max-width:320px;">
+      <label for="avatarInput">Foto profil</label>
+      <input type="file" id="avatarInput" accept="image/*">
+    </div>
+    <div class="alert" id="avatarAlert"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-ink btn-sm" id="uploadAvatarBtn">Simpan Foto</button>
+      <button class="btn btn-outline-dark btn-sm" id="removeAvatarBtn" style="display:none;">Hapus Foto</button>
+    </div>
+    <div class="bar" style="margin:18px 0;"></div>
     <button class="btn btn-danger btn-sm" id="logoutBtn2">Keluar (Logout)</button>
   </div>
 
@@ -62,6 +78,10 @@
           </select>
         </div>
         <div class="field">
+          <label for="pWhatsapp">Nomor WhatsApp penjual</label>
+          <input type="text" id="pWhatsapp" placeholder="08xxxxxxxxxx">
+        </div>
+        <div class="field">
           <label for="pImage">Gambar produk</label>
           <input type="file" id="pImage" accept="image/*">
         </div>
@@ -100,6 +120,54 @@ if (user.is_owner) {
 document.getElementById('logoutBtn2').addEventListener('click', () => {
   API.clearSession();
   window.location.href = '/index.html';
+});
+
+function renderProfileAvatar() {
+  const img = document.getElementById('profileAvatarImg');
+  const initialEl = document.getElementById('profileAvatarInitial');
+  const removeBtn = document.getElementById('removeAvatarBtn');
+  const current = API.user();
+
+  if (current.avatar_path) {
+    img.src = current.avatar_path;
+    img.style.display = 'block';
+    initialEl.style.display = 'none';
+    removeBtn.style.display = 'inline-flex';
+  } else {
+    img.style.display = 'none';
+    initialEl.style.display = 'flex';
+    initialEl.textContent = current.name ? current.name.trim()[0].toUpperCase() : '?';
+    removeBtn.style.display = 'none';
+  }
+}
+renderProfileAvatar();
+
+document.getElementById('uploadAvatarBtn').addEventListener('click', async () => {
+  const alertBox = document.getElementById('avatarAlert');
+  const file = document.getElementById('avatarInput').files[0];
+  if (!file) {
+    showAlert(alertBox, 'Pilih foto terlebih dahulu.');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('avatar', file);
+  try {
+    const { user: updated } = await API.request('/auth/avatar', { method: 'PUT', body: fd, isForm: true });
+    API.setSession(API.token(), updated);
+    alertBox.classList.remove('show');
+    renderProfileAvatar();
+    renderNavbar();
+  } catch (err) {
+    showAlert(alertBox, err.message);
+  }
+});
+
+document.getElementById('removeAvatarBtn').addEventListener('click', async () => {
+  if (!confirm('Hapus foto profil?')) return;
+  const { user: updated } = await API.request('/auth/avatar', { method: 'DELETE' });
+  API.setSession(API.token(), updated);
+  renderProfileAvatar();
+  renderNavbar();
 });
 
 let categories = [];
@@ -155,6 +223,7 @@ async function loadMyProducts() {
         <h3>${p.name}</h3>
         <p class="desc">${p.description || ''}</p>
         <div class="price">${formatRupiah(p.price)}</div>
+        <p style="font-size:12px; color:var(--muted); margin:6px 0 0;">${p.whatsapp_number ? 'WA: ' + p.whatsapp_number : 'Nomor WhatsApp belum diatur'}</p>
         <div class="card-actions">
           <button class="btn btn-danger btn-sm" data-id="${p.id}">Hapus</button>
         </div>
@@ -179,6 +248,7 @@ document.getElementById('productForm')?.addEventListener('submit', async (e) => 
   fd.append('description', document.getElementById('pDesc').value.trim());
   fd.append('price', document.getElementById('pPrice').value);
   fd.append('category_id', document.getElementById('pCategory').value);
+  fd.append('whatsapp_number', document.getElementById('pWhatsapp').value.trim());
   const file = document.getElementById('pImage').files[0];
   if (file) fd.append('image', file);
 
