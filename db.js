@@ -1,7 +1,14 @@
 const Database = require('better-sqlite3');
+const fs = require('fs');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, 'depari-shop.sqlite'));
+// Folder ini terhubung ke Volume permanen di Railway (Mount Path: /app/data).
+// Kalau belum ada volume (misalnya waktu development di komputer sendiri),
+// folder ini otomatis dibuat sebagai folder biasa.
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const db = new Database(path.join(DATA_DIR, 'depari-shop.sqlite'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
@@ -53,3 +60,4 @@ if (!hasAvatar) {
 }
 
 module.exports = db;
+module.exports.DATA_DIR = DATA_DIR;
