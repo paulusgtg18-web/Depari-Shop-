@@ -8,7 +8,7 @@ const { requireAuth, requireOwner } = require('../middleware/auth');
 const router = express.Router();
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
+  destination: (req, file, cb) => cb(null, path.join(db.DATA_DIR, 'uploads')),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, crypto.randomBytes(16).toString('hex') + ext);
