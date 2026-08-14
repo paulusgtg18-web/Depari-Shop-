@@ -116,6 +116,28 @@ a { color: inherit; }
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 13px;
 }
+.avatar-img { object-fit: cover; }
+
+.profile-header-row { display: flex; align-items: center; gap: 20px; }
+.profile-avatar-wrap { flex-shrink: 0; }
+.profile-avatar {
+  width: 76px; height: 76px; border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--gold);
+}
+.profile-avatar-initial {
+  background: var(--gold); color: var(--ink-dark);
+  align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 700; font-size: 30px;
+}
+.btn-outline-dark {
+  background: transparent; color: var(--ink); border: 1.5px solid var(--paper-2);
+}
+.btn-outline-dark:hover { border-color: var(--ink); }
+@media (max-width: 480px) {
+  .profile-header-row { gap: 14px; }
+  .profile-avatar, .profile-avatar-initial { width: 60px; height: 60px; font-size: 24px; }
+}
 .dropdown {
   position: absolute;
   right: 0; top: calc(100% + 10px);
@@ -212,7 +234,21 @@ a { color: inherit; }
 }
 .card h3 { font-size: 17px; margin: 0 0 6px; }
 .card p.desc { font-size: 13px; color: var(--muted); margin: 0 0 10px; min-height: 34px; }
-.card .price { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; color: var(--ink-dark); }
+.card .price { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; color: var(--ink-dark); margin-bottom: 12px; }
+
+/* Tombol Beli via WhatsApp */
+.btn-whatsapp {
+  background: #25D366;
+  color: #fff;
+  justify-content: center;
+}
+.btn-whatsapp:hover { filter: brightness(1.05); }
+.btn-whatsapp[disabled] {
+  background: var(--paper-2);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.btn-whatsapp[disabled]:hover { filter: none; }
 
 /* Ticket notch for owner-editable cards */
 .card .price-tag {
