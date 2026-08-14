@@ -61,7 +61,9 @@ async function loadProducts() {
   }
   empty.style.display = 'none';
 
-  grid.innerHTML = products.map(p => `
+  grid.innerHTML = products.map(p => {
+    const link = waLink(p.whatsapp_number, p.name, p.price);
+    return `
     <div class="card">
       <div class="thumb">
         ${p.image_path ? `<img src="${p.image_path}" alt="${p.name}">` : 'Belum ada gambar'}
@@ -71,13 +73,18 @@ async function loadProducts() {
         <h3>${p.name}</h3>
         <p class="desc">${p.description || ''}</p>
         <div class="price">${formatRupiah(p.price)}</div>
+        ${link
+          ? `<a class="btn btn-whatsapp btn-block" href="${link}" target="_blank" rel="noopener">Beli via WhatsApp</a>`
+          : `<button class="btn btn-whatsapp btn-block" disabled title="Nomor WhatsApp belum diatur untuk produk ini">Beli via WhatsApp</button>`
+        }
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 loadCategories();
 loadProducts();
 </script>
 </body>
-                 </html>
+  </html>
